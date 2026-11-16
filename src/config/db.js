@@ -1,10 +1,13 @@
+const  dotenv = require('dotenv');
 const {Pool} =  require('pg');
 
-const port = process.env.PORT;
-const host = process.env.HOST;
-const password = process.env.PASSWORD;
-const user = process.env.USER;
-const db_name = process.env.DATABASE;
+dotenv.config();
+
+const port = process.env.DB_PORT;
+const host = process.env.DB_HOST;
+const password = process.env.DB_PASSWORD;
+const user = process.env.DB_USER;
+const db_name = process.env.DB_DATABASE;
 
 //* Creación de un pool por la aplicación entera, sera creado y reutilizado nunca crear un Pool() por request
 
