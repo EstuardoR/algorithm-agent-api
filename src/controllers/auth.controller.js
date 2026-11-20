@@ -1,6 +1,7 @@
 // register, login
 const bcrypt = require('bcrypt');
-const { createUser } = require('../models/user.model');
+const jwt = require('jsonwebtoken');
+const { createUser, searchWithEmail } = require('../models/user.model');
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -46,7 +47,7 @@ async function register(req, res) {
         // 4. con datos validos, hashear la contraseña
         const passwordHash = await bcrypt.hash(password_hash, 12) // 12 = salt rounds
 
-        const newUser = await createUser({ name: cleanEmail, email: cleanEmail, passwordHash });
+        const newUser = await createUser({ name: cleanName, email: cleanEmail, passwordHash });
 
 
         return res.status(201).json(newUser);
@@ -69,4 +70,53 @@ async function register(req, res) {
 }
 
 
-module.exports = { register }
+async function login(req, res) {
+    try {
+        const { email, password } = req.body;
+
+        if (typeof email !== 'string' ||
+            typeof password !== 'string'
+        ) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Los valores ingresados son invalidos'
+            })
+        }
+
+        const cleanEmail = email.trim().toLowerCase();
+        const user = await searchWithEmail(cleanEmail);
+        const isCorrectPassword = await bcrypt.compare(password, user.password_hash);
+
+        if (!user || !isCorrectPassword) {
+            return res.status(401).json({
+                status: 'error',
+                message: 'Credenciales invalidas.'
+            })
+        }
+
+        const token = jwt.sign(
+            { id: user.id_user, rol: user.rol },
+            process.env.JWT_SECRET,
+            { expiresIn: process.env.JWT_EXPIRES_IN }
+        );
+
+        return res.status(200).json({
+            token, user: { id: user.id_user, name: user.name, email: user.email, rol: user.rol }
+        })
+
+
+    } catch (error) {
+        console.error('Error al iniciar sesion: ', error);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Ocurrio un error al iniciar sesión del lado del servidor'
+        })
+    }
+}
+
+
+
+
+
+
+module.exports = { register, login }
